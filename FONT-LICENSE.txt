@@ -1,0 +1,11 @@
+Specimen Press Fixture Font
+===========================
+
+Copyright (C) 2026 Specimen Press contributors
+
+This generated TrueType fixture is dedicated to the public domain under
+the Creative Commons CC0 1.0 Universal license.
+
+To the extent that any copyright or related rights apply, the rights holder
+waives those rights worldwide. The fixture exists for deterministic tests and
+the local demo.
