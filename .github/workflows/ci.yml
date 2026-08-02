@@ -19,6 +19,9 @@ jobs:
         with:
           swift-version: "5.9"
 
+      - name: Validate bundled CFF fixtures
+        run: python3 scripts/validate_cff_fixtures.py
+
       - name: Run tests
         run: swift test
 

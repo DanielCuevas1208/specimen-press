@@ -36,12 +36,47 @@ final class SpecimenPressTests: XCTestCase {
         let summary = try DemoFont.load().summary
 
         XCTAssertEqual(summary.familyName, "Specimen Press")
+        XCTAssertEqual(summary.outlineFormat, .trueType)
         XCTAssertEqual(summary.mappedCodePointCount, 27)
         XCTAssertEqual(summary.glyphsWithOutlines, 27)
         XCTAssertEqual(summary.unicodeCoverage, [
             UnicodeRange(start: 32, end: 32),
             UnicodeRange(start: 65, end: 90)
         ])
+    }
+
+    func testCFFFixtureExposesOutlinesAndFormat() throws {
+        let font = try DemoFont.loadCFF()
+
+        XCTAssertEqual(font.outlineFormat, .cff)
+        XCTAssertEqual(font.familyName, "Specimen Press CFF")
+        XCTAssertEqual(font.metrics.numberOfGlyphs, 28)
+        XCTAssertEqual(font.glyphIndex(for: "A"), 2)
+
+        let glyph = try XCTUnwrap(font.glyph(for: "A"))
+        let outline = try XCTUnwrap(glyph.outline)
+        XCTAssertFalse(outline.isEmpty)
+        XCTAssertTrue(glyph.svgPath.hasPrefix("M "))
+    }
+
+    func testCFF2FixtureExposesOutlinesAndFormat() throws {
+        let font = try DemoFont.loadCFF2()
+
+        XCTAssertEqual(font.outlineFormat, .cff2)
+        XCTAssertEqual(font.familyName, "Specimen Press CFF2")
+        XCTAssertEqual(font.metrics.numberOfGlyphs, 28)
+
+        let glyph = try XCTUnwrap(font.glyph(for: "B"))
+        let outline = try XCTUnwrap(glyph.outline)
+        XCTAssertFalse(outline.isEmpty)
+    }
+
+    func testRendererUsesOutlineFormatLabel() throws {
+        let font = try DemoFont.loadCFF()
+        let svg = SpecimenRenderer().render(font: font)
+
+        XCTAssertTrue(svg.contains("CFF / OUTLINE INSPECTION"))
+        XCTAssertFalse(svg.contains("TRUE TYPE / OUTLINE INSPECTION"))
     }
 
     func testRendererIsDeterministicAndIncludesInspectionLabels() throws {

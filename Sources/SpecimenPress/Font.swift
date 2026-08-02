@@ -37,6 +37,7 @@ public struct UnicodeRange: Codable, Equatable {
 
 public struct FontSummary: Codable, Equatable {
     public let familyName: String
+    public let outlineFormat: OutlineFormat
     public let metrics: FontMetrics
     public let mappedCodePointCount: Int
     public let glyphsWithOutlines: Int
@@ -44,12 +45,14 @@ public struct FontSummary: Codable, Equatable {
 
     public init(
         familyName: String,
+        outlineFormat: OutlineFormat,
         metrics: FontMetrics,
         mappedCodePointCount: Int,
         glyphsWithOutlines: Int,
         unicodeCoverage: [UnicodeRange]
     ) {
         self.familyName = familyName
+        self.outlineFormat = outlineFormat
         self.metrics = metrics
         self.mappedCodePointCount = mappedCodePointCount
         self.glyphsWithOutlines = glyphsWithOutlines
@@ -59,13 +62,15 @@ public struct FontSummary: Codable, Equatable {
 
 public struct TrueTypeFont {
     public let familyName: String
+    public let outlineFormat: OutlineFormat
     public let metrics: FontMetrics
     public let characterMap: [UInt32: UInt16]
     public let glyphs: [Glyph]
 
     public init(data: Data) throws {
         let reader = BinaryReader(data: data)
-        guard try reader.uint32(at: 0) == 0x0001_0000 else {
+        let signature = try reader.uint32(at: 0)
+        guard signature == 0x0001_0000 || signature == 0x4F54_544F else {
             throw FontError.invalidSignature
         }
 
@@ -92,8 +97,6 @@ public struct TrueTypeFont {
         let maxp = try table("maxp")
         let hhea = try table("hhea")
         let hmtx = try table("hmtx")
-        let loca = try table("loca")
-        let glyf = try table("glyf")
         let cmap = try table("cmap")
 
         guard head.length >= 54 else { throw FontError.invalidTable("head") }
@@ -101,11 +104,7 @@ public struct TrueTypeFont {
         guard hhea.length >= 36 else { throw FontError.invalidTable("hhea") }
 
         let unitsPerEm = try reader.uint16(at: head.offset + 18)
-        let indexToLocFormat = try reader.int16(at: head.offset + 50)
         guard unitsPerEm > 0 else { throw FontError.invalidValue("unitsPerEm must be positive.") }
-        guard indexToLocFormat == 0 || indexToLocFormat == 1 else {
-            throw FontError.invalidValue("indexToLocFormat must be 0 or 1.")
-        }
 
         let numberOfGlyphs = Int(try reader.uint16(at: maxp.offset + 4))
         let numberOfHorizontalMetrics = Int(try reader.uint16(at: hhea.offset + 34))
@@ -132,30 +131,70 @@ public struct TrueTypeFont {
             glyphCount: numberOfGlyphs,
             metricCount: numberOfHorizontalMetrics
         )
-        let offsets = try Self.readLoca(
-            reader: reader,
-            table: loca,
-            glyphCount: numberOfGlyphs,
-            format: indexToLocFormat
-        )
         let characterMap = try Self.readCharacterMap(reader: reader, table: cmap, glyphCount: numberOfGlyphs)
-        let decoder = GlyphDecoder(
-            reader: reader,
-            glyf: glyf,
-            offsets: offsets,
-            glyphCount: numberOfGlyphs
-        )
 
+        let outlineFormat: OutlineFormat
         var parsedGlyphs: [Glyph] = []
         parsedGlyphs.reserveCapacity(numberOfGlyphs)
-        for index in 0..<numberOfGlyphs {
-            let outline = try decoder.outline(for: index)
-            parsedGlyphs.append(
-                Glyph(index: UInt16(index), metrics: glyphMetrics[index], outline: outline)
+
+        if let glyf = tables["glyf"], let loca = tables["loca"] {
+            let indexToLocFormat = try reader.int16(at: head.offset + 50)
+            guard indexToLocFormat == 0 || indexToLocFormat == 1 else {
+                throw FontError.invalidValue("indexToLocFormat must be 0 or 1.")
+            }
+            let offsets = try Self.readLoca(
+                reader: reader,
+                table: loca,
+                glyphCount: numberOfGlyphs,
+                format: indexToLocFormat
             )
+            let decoder = GlyphDecoder(
+                reader: reader,
+                glyf: glyf,
+                offsets: offsets,
+                glyphCount: numberOfGlyphs
+            )
+            outlineFormat = .trueType
+            for index in 0..<numberOfGlyphs {
+                let outline = try decoder.outline(for: index)
+                parsedGlyphs.append(
+                    Glyph(index: UInt16(index), metrics: glyphMetrics[index], outline: outline)
+                )
+            }
+        } else if let cff = tables["CFF "] {
+            let decoder = try CFFDecoder(
+                reader: reader,
+                table: cff,
+                isCFF2: false,
+                glyphCount: numberOfGlyphs
+            )
+            outlineFormat = .cff
+            for index in 0..<numberOfGlyphs {
+                let outline = try decoder.outline(for: index)
+                parsedGlyphs.append(
+                    Glyph(index: UInt16(index), metrics: glyphMetrics[index], outline: outline)
+                )
+            }
+        } else if let cff2 = tables["CFF2"] {
+            let decoder = try CFFDecoder(
+                reader: reader,
+                table: cff2,
+                isCFF2: true,
+                glyphCount: numberOfGlyphs
+            )
+            outlineFormat = .cff2
+            for index in 0..<numberOfGlyphs {
+                let outline = try decoder.outline(for: index)
+                parsedGlyphs.append(
+                    Glyph(index: UInt16(index), metrics: glyphMetrics[index], outline: outline)
+                )
+            }
+        } else {
+            throw FontError.missingTable("glyf, CFF , or CFF2")
         }
 
         self.familyName = Self.readFamilyName(reader: reader, table: tables["name"]) ?? "Untitled font"
+        self.outlineFormat = outlineFormat
         self.metrics = parsedMetrics
         self.characterMap = characterMap
         self.glyphs = parsedGlyphs
@@ -194,6 +233,7 @@ public struct TrueTypeFont {
 
         return FontSummary(
             familyName: familyName,
+            outlineFormat: outlineFormat,
             metrics: metrics,
             mappedCodePointCount: characterMap.count,
             glyphsWithOutlines: glyphs.filter(\.hasOutline).count,

@@ -14,7 +14,7 @@ public enum FontError: Error, LocalizedError, Equatable {
         case let .dataTooShort(offset, length):
             return "Font data ends before offset \(offset) can provide \(length) bytes."
         case .invalidSignature:
-            return "The file is not a supported TrueType font."
+            return "The file is not a supported TrueType or OpenType font."
         case let .invalidTable(tag):
             return "The \(tag) table is malformed."
         case let .missingTable(tag):

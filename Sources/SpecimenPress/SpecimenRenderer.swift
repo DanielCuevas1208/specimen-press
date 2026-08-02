@@ -61,7 +61,7 @@ public struct SpecimenRenderer {
             .cell { fill: none; stroke: #d8cebd; stroke-width: 1; }
           </style>
           <rect class="paper" width="100%" height="100%"/>
-          <text class="muted" x="\(configuration.margin)" y="34" font-family="sans-serif" font-size="12" letter-spacing="2">TRUE TYPE / OUTLINE INSPECTION</text>
+          <text class="muted" x="\(configuration.margin)" y="34" font-family="sans-serif" font-size="12" letter-spacing="2">\(font.outlineFormat.label) / OUTLINE INSPECTION</text>
           <text class="ink" x="\(configuration.margin)" y="76" font-family="sans-serif" font-size="34" font-weight="700">\(escape(configuration.title))</text>
           <text class="muted" x="\(configuration.margin)" y="100" font-family="sans-serif" font-size="14">\(escape(font.familyName)) / \(font.glyphs.count) glyphs / \(font.characterMap.count) mapped code points</text>
           <line class="rule" x1="\(configuration.margin)" y1="\(format(baselineY))" x2="\(configuration.width - configuration.margin)" y2="\(format(baselineY))"/>

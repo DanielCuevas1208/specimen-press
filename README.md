@@ -1,6 +1,6 @@
 # Specimen Press
 
-Specimen Press inspects TrueType fonts and turns glyph outlines into readable SVG specimen sheets.
+Specimen Press inspects TrueType and OpenType fonts and turns glyph outlines into readable SVG specimen sheets.
 
 It exposes one Swift library and one command-line tool.
 
@@ -8,17 +8,19 @@ It exposes one Swift library and one command-line tool.
 
 Use it when a font needs a compact, repeatable inspection artifact.
 
-The output shows glyph coverage, font metrics, baselines, and decoded outline paths.
+The output shows glyph coverage, font metrics, baselines, decoded outline paths, and the outline format.
 
-The bundled fixture makes the demo and tests run without network access or secrets.
+The bundled fixtures make the demo and tests run without network access or secrets.
 
 ## Capabilities
 
-- Parse head, cmap, hmtx, and glyf tables.
+- Parse head, cmap, hmtx, and glyf tables for TrueType outlines.
+- Parse CFF and CFF2 charstrings for PostScript outlines.
 - Read loca, maxp, hhea, and optional name data.
-- Decode simple and composite glyph outlines.
-- Report metrics and Unicode coverage as FontSummary.
-- Render an SVG specimen sheet for a TrueType font.
+- Decode simple and composite TrueType glyph outlines.
+- Execute Type 2 charstrings for CFF and CFF2 glyphs.
+- Report metrics, outline format, and Unicode coverage as FontSummary.
+- Render an SVG specimen sheet for a supported font.
 - Draw sample text, metric lines, and an uppercase glyph grid.
 
 ## Architecture
@@ -27,7 +29,9 @@ BinaryReader reads big-endian values with bounds checks.
 
 TrueTypeFont validates the table directory and coordinates table parsing.
 
-GlyphDecoder expands simple contours and composite components.
+GlyphDecoder expands TrueType simple contours and composite components.
+
+CFFDecoder reads CFF and CFF2 dictionaries and executes Type 2 charstrings.
 
 SpecimenRenderer maps outlines into a stable SVG layout.
 
@@ -47,7 +51,7 @@ swift run specimen-press demo --output specimen.svg
 
 Open specimen.svg in a browser or vector editor.
 
-Inspect any TrueType font.
+Inspect any supported font.
 
 ~~~sh
 swift run specimen-press inspect /path/to/font.ttf
@@ -56,7 +60,7 @@ swift run specimen-press inspect /path/to/font.ttf
 Render a custom sheet.
 
 ~~~sh
-swift run specimen-press render /path/to/font.ttf   --output specimen.svg   --sample "A SHORT FONT SAMPLE"
+swift run specimen-press render /path/to/font.otf   --output specimen.svg   --sample "A SHORT FONT SAMPLE"
 ~~~
 
 Run tests and a release build.
@@ -68,11 +72,12 @@ swift build -c release
 
 ## Sample output
 
-The bundled fixture reports stable values.
+The bundled TrueType fixture reports stable values.
 
 ~~~json
 {
   "familyName" : "Specimen Press",
+  "outlineFormat" : "trueType",
   "mappedCodePointCount" : 27,
   "metrics" : {
     "ascender" : 800,
@@ -85,6 +90,8 @@ The bundled fixture reports stable values.
 }
 ~~~
 
+The bundled CFF fixture reports `"outlineFormat" : "cff"`.
+
 The demo writes one SVG file.
 
 ~~~text
@@ -93,7 +100,7 @@ Wrote specimen.svg
 
 ## Tests
 
-Tests assert fixture metrics, coverage ranges, glyph outlines, SVG labels, and malformed input handling.
+Tests assert fixture metrics, coverage ranges, TrueType and CFF outlines, SVG labels, and malformed input handling.
 
 Local status: not run because Swift is unavailable in the supplied Windows environment.
 
@@ -101,8 +108,8 @@ CI runs swift test, a release build, and the bundled demo on macOS.
 
 ## Limitations
 
-- The first release supports TrueType outlines in glyf.
-- It does not parse CFF or CFF2 outlines.
+- CFF decoding supports common Type 2 drawing operators and subroutine calls.
+- It does not execute hintmask or counter mask operators.
 - It reads cmap formats 4 and 12.
 - It does not execute TrueType hinting instructions.
 - It renders uppercase A-Z cells and uses glyph zero for missing sample characters.
@@ -111,7 +118,7 @@ CI runs swift test, a release build, and the bundled demo on macOS.
 
 ## Roadmap
 
-1. Add CFF and CFF2 outline inspection.
+1. ~~Add CFF and CFF2 outline inspection.~~
 2. Add kerning and variable-font axis summaries.
 3. Add optional JSON and SVG snapshot fixtures.
 4. Add contour winding diagnostics.
@@ -120,4 +127,4 @@ CI runs swift test, a release build, and the bundled demo on macOS.
 
 The library and CLI use the MIT License.
 
-The bundled fixture uses the CC0 1.0 Universal dedication in FONT-LICENSE.txt.
+The bundled fixtures use the CC0 1.0 Universal dedication in FONT-LICENSE.txt.
