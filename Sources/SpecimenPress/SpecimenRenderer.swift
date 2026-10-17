@@ -120,7 +120,7 @@ public struct SpecimenRenderer {
         let translateX = center - glyphCenter * boundedScale
         let path = glyph.svgPath
 
-        var result = "  <g aria-label='Glyph \(escape(String(character)))'>\n"
+        var result = "  <g aria-label='Glyph \(escape(String(character))) / \(index)'>\n"
         result += "    <rect class='cell' x='\(x)' y='\(y)' width='\(configuration.cellWidth)' height='\(configuration.cellHeight)'/>\n"
         if !path.isEmpty {
             result += "    <path class='ink' d='\(path)' transform='translate(\(format(translateX)) \(format(baseline))) scale(\(format(boundedScale)) \(format(-boundedScale)))'/>\n"
