@@ -25,3 +25,6 @@ public enum FontError: Error, LocalizedError, Equatable {
             return "The glyph outline cannot be decoded: \(reason)"
         case let .invalidValue(reason):
             return "The font contains an invalid value: \(reason)"
+        }
+    }
+}
