@@ -52,6 +52,7 @@ final class GlyphDecoder {
 
     private func readSimple(base: Int, end: Int, contourCount: Int, bounds: GlyphBounds) throws -> GlyphOutline {
         guard contourCount <= 32_768 else { throw FontError.invalidValue("The glyph has too many contours.") }
+        if contourCount == 0 { return GlyphOutline(bounds: bounds, contours: []) }
         let endPointsStart = base + 10
         let instructionLengthOffset = endPointsStart + contourCount * 2
         guard instructionLengthOffset + 2 <= end else { throw FontError.invalidTable("glyf") }

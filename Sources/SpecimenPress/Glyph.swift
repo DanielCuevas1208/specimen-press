@@ -143,3 +143,6 @@ public struct Glyph: Codable, Equatable {
     }
 
     public var hasOutline: Bool { outline?.isEmpty == false }
+
+    public var svgPath: String { outline?.svgPath() ?? "" }
+}

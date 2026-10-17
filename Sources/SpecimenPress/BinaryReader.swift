@@ -50,3 +50,4 @@ struct BinaryReader {
         try require(offset: offset, length: length)
         return data.subdata(in: offset..<(offset + length))
     }
+}

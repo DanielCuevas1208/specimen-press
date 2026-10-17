@@ -24,3 +24,5 @@ let package = Package(
             name: "SpecimenPressTests",
             dependencies: ["SpecimenPress"]
         )
+    ]
+)
